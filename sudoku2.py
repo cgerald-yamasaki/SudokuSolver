@@ -1,7 +1,8 @@
 
+# this has actually changed
+
 # TO-DO:
 # - make input handling
-# - check over comments
 # - decide whether to use 'block' or 'b_in' for block number/index
 # - rename 'block_l_in_ins'
 # - 'ins' for indexes switch to 'pos' instead?
@@ -233,11 +234,12 @@ def find_one_zero(l: list) -> int:     # if l has only one blank/zero, returns i
                 return 10
     return blank_in      # return 10 means more or less than one zero/blank
 
-def find_missing_num(l: list) -> int:   # given list with only one blank, returns missing number
-    for num in range(1,10):
+def find_missing_nums(l: list) -> list: # given a list (row, col, or block list), returns list of missing numbers (between 1-9 incl)
+    missing_nums = []
+    for num in range(1, 10):
         if num not in l:
-            return num
-    return 0
+            missing_nums.append(num)
+    return missing_nums
 
 def fill_oz_row(mat: list, num=10) -> list:     # returns mat with all rows with only one zero filled
     filled_mat = mat
@@ -245,7 +247,7 @@ def fill_oz_row(mat: list, num=10) -> list:     # returns mat with all rows with
         blank_in = find_one_zero(mat[r_in])
         if blank_in != 10:
             if num == 10:
-                num = find_missing_num(mat[r_in])
+                num = find_missing_nums(mat[r_in])[0]
             filled_mat[r_in][blank_in] = num
     return filled_mat
 
@@ -256,7 +258,7 @@ def fill_oz_col(mat: list, num=10) -> list:     # returns mat with all cols with
         blank_in = find_one_zero(col)
         if blank_in != 10:
             if num == 10:
-                num = find_missing_num(mat[c_in])
+                num = find_missing_nums(mat[c_in])[0]
             filled_mat[blank_in][c_in] = num
     return filled_mat
 
@@ -285,7 +287,7 @@ def fill_one_zero_block(mat: list, block_in: int, num=10) -> list:      # if giv
     if blank_block_in != 10:
         blank_ins = block_l_in_ins(block_in, blank_block_in)
         if num == 10:
-            num = find_missing_num(block_l) 
+            num = find_missing_nums(block_l)[0]
         mat[blank_ins[0]][blank_ins[1]] = num
     return mat
 
@@ -458,7 +460,26 @@ def loop_strat1(mat: list) -> list: # loop strategy until stops changing
         new_mat = strat1_numbers(new_mat)
     return new_mat
 
+# LINE/BLOCK STRAT if only one of the remaining numbers can go in a blank within a line/block, put that number there
+# for a line, for each missing number, make a list of blanks where it could go 
+# if there is a blank space that is only in one of the missing numbers' lists, 
+# put that number in that blank
+
+def row_missing_nums(mat, row): # DELETE?
+    return find_missing_nums(mat[row])
+
+
+
 # *************** USER INPUT ***************
+
+yes_set = ["yes", "true", "True", "Yes", "y", "Y", "ye"]
+
+def enter_input() -> bool:
+    input_bool = input("Would you like to enter a sudoku puzzle?\n")
+    if input_bool in yes_set:
+        return True
+    else:
+        return False
 
 def input_handler() -> list:
     print("Enter a row in the format\n[1, 0, 4, 5, 0, 0, 3, 2, 9]\nusing 0s for blanks")
@@ -497,6 +518,8 @@ def run_strats(mat):
     return mat
 
 def main():
+    if enter_input():
+        input_handler()
     old_mat = copy.deepcopy(sudoku)
     new_mat = copy.deepcopy(sudoku)
     new_mat = run_strats(new_mat)
@@ -510,6 +533,8 @@ main()
 
 
 # *************** CODING TESTS ***************
+
+# input_handler()
 
 # print_mat(test7)
 # test7strat1 = loop_strat1(test7)
