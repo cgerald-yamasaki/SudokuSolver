@@ -1,5 +1,7 @@
 
 # TO-DO:
+# - make input handling
+# - check over comments
 # - decide whether to use 'block' or 'b_in' for block number/index
 # - rename 'block_l_in_ins'
 # - 'ins' for indexes switch to 'pos' instead?
@@ -9,6 +11,7 @@
 #   blanks x or y and numC can go in blank z (or some combo of 
 #   other blanks), numC must go in blank z.
 # - replace 'block_in' with 'block-num'?
+
 
 
 import copy
@@ -282,13 +285,13 @@ def fill_one_zero_block(mat: list, block_in: int, num=10) -> list:      # if giv
     if blank_block_in != 10:
         blank_ins = block_l_in_ins(block_in, blank_block_in)
         if num == 10:
-            num = find_missing_num(block_l) # changed mat[block_in] to block_l... I think this is right? DELETE!!
+            num = find_missing_num(block_l) 
         mat[blank_ins[0]][blank_ins[1]] = num
     return mat
 
-def fill_oz_blocks(mat: list, num=10) -> list:
+def fill_oz_blocks(mat: list, num=10) -> list:  # iterates through blocks, fills ones that only have one zero
     for block_in in range(9):
-        fill_one_zero_block(mat, block_in, num)  #destructively changes new_mat without having to reassign it to itself?
+        mat = fill_one_zero_block(mat, block_in, num)  # destructively changes mat 
     return mat
 
 # FULL-MATRIX ELIMINATION STRATEGY (1)
@@ -375,7 +378,7 @@ def elim_row_other_blocks(mat: list, block: int, row: int) -> list:     # return
             mat[row][i] = 10
     return mat
 
-def elim_col_other_blocks(mat: list, block: int, col: int) -> list: 
+def elim_col_other_blocks(mat: list, block: int, col: int) -> list:     # returns matrix with col's blanks replaced with 10s in other blocks
     block_ins = get_block_ins(block)
     block_col = [block_ins[0], block_ins[0] + 1, block_ins[0] + 2]
     for i in range(9):
@@ -384,7 +387,7 @@ def elim_col_other_blocks(mat: list, block: int, col: int) -> list:
             mat[i][col] = 10
     return mat
 
-def elim_line_blanks(mat: list) -> list:
+def elim_line_blanks(mat: list) -> list:    # iterates through blocks, if all blanks in block are in a line, elim blanks in that line in other blocks
     for block in range(9):
         blank_row = check_blanks_row_block(mat, block)
         if blank_row < 10:
@@ -394,7 +397,7 @@ def elim_line_blanks(mat: list) -> list:
             mat = elim_col_other_blocks(mat, block, blank_col)
     return mat
 
-def loop_elb(mat: list) -> list:
+def loop_elb(mat: list) -> list:    # loops elim_line_blanks until no more blanks can be eliminated
     old_mat = copy.deepcopy(mat)
     new_mat = copy.deepcopy(mat)
     new_mat = elim_line_blanks(new_mat)
@@ -405,20 +408,20 @@ def loop_elb(mat: list) -> list:
 
 # STEP 3:
 
-def fill_one_zeros(mat: list, num=10) -> list:
+def fill_one_zeros(mat: list, num=10) -> list:  # if there is only one 0 left in a line or block, replace with num
     mat = fill_oz_lines(mat, num)
     mat = fill_oz_blocks(mat, num)
     return mat
 
 # STEP 4:
 
-def elim_and_fill(mat: list, num: int) -> list:
+def elim_and_fill(mat: list, num: int) -> list: # do steps 1-3
     mat = elim_in_blanks(mat, num)
     mat = loop_elb(mat)
     mat = fill_one_zeros(mat, num)
     return mat
 
-def loop_elim_fill(mat: list, num: int) -> list:
+def loop_elim_fill(mat: list, num: int) -> list:    # loop steps 1-3 until mat stops changing
     old_mat = copy.deepcopy(mat)
     new_mat = copy.deepcopy(mat)
     new_mat = elim_and_fill(new_mat, num)
@@ -429,7 +432,7 @@ def loop_elim_fill(mat: list, num: int) -> list:
 
 # STEP 5
 
-def replace_10s(mat: list) -> list:
+def replace_10s(mat: list) -> list: # replaces 10s with 0s again
     for r in range(9):
         for c in range(9): 
             if mat[r][c] == 10:
@@ -438,7 +441,7 @@ def replace_10s(mat: list) -> list:
 
 # STEP 6
 
-def strat1_numbers(mat: list) -> list:
+def strat1_numbers(mat: list) -> list:  # steps 1-5
     for num in range(1, 10):
         mat = loop_elim_fill(mat, num)
         mat = replace_10s(mat)
@@ -446,18 +449,34 @@ def strat1_numbers(mat: list) -> list:
 
 # STEP 7
 
-def loop_strat1(mat: list) -> list:
+def loop_strat1(mat: list) -> list: # loop strategy until stops changing
     old_mat = copy.deepcopy(mat)
     new_mat = copy.deepcopy(mat)
     new_mat = strat1_numbers(new_mat)
-    # print_mat(find_changes(old_mat, new_mat))
-    # print_mat(new_mat)
     while new_mat != old_mat:
         old_mat = copy.deepcopy(new_mat)
         new_mat = strat1_numbers(new_mat)
-        # print_mat(find_changes(old_mat, new_mat))
-        # print_mat(new_mat)
     return new_mat
+
+# *************** USER INPUT ***************
+
+def input_handler() -> list:
+    print("Enter a row in the format\n[1, 0, 4, 5, 0, 0, 3, 2, 9]\nusing 0s for blanks")
+    r1 = input("Enter first row:")
+    r2 = input("Enter second row:")
+    r3 = input("Enter third row:")
+    r4 = input("Enter fourth row:")
+    r5 = input("Enter fifth row:")
+    r6 = input("Enter sixth row:")
+    r7 = input("Enter seventh row:")
+    r8 = input("Enter eighth row:")
+    r9 = input("Enter ninth row:")
+    return [r1, r2, r3, r4, r5, r6, r7, r8, r9]
+
+def check_input_mat(mat: list) -> bool: # check that input matrix follows the rules
+    pass
+
+
 
 def print_info(mat, solved_mat):
     print('Pre-solving:')
