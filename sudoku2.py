@@ -1,5 +1,6 @@
 
 # TO-DO:
+# - type mat: list to be mat: list[list[int]]
 # - make input handling
 # - decide whether to use 'block' or 'b_in' for block number/index
 # - rename 'block_l_in_ins'
@@ -470,14 +471,12 @@ def loop_strat1(mat: list) -> list: # loop strategy until stops changing
 # simple version only looking at direct intersections with lines containing num
     # rather than taking into account if adjacent block can only have num in a particular line so that line should be eliminated from block looking at
 
-def row_missing_nums(mat: list[int], row: int) -> list[int]: # DELETE?
+def row_missing_nums(mat: list[list[int]], row: int) -> list[list[int]]: # DELETE?
     return find_missing_nums(mat[row])
 
-def block_missing_nums(mat: list[int], block: int) -> list[int]:    # returns list of numbers missing from block
+def block_missing_nums(mat: list[list[int]], block: int) -> list[int]:    # returns list of numbers missing from block
     block_l = make_block_l(mat, block)
     return find_missing_nums(block_l)
-
-# CHANGE ALL MAT: LIST[LIST[INT]] ??? (DELETE)
 
 def block_num_possibilities(mat: list[list[int]], block: int, num: int) -> list[int]: # returns list of block-indices where num could go
     elim_mat = copy.deepcopy(mat)
@@ -489,7 +488,7 @@ def block_num_possibilities(mat: list[list[int]], block: int, num: int) -> list[
             possibilities.append(i)
     return possibilities
 
-def poss_lists_block(mat: list[int], block: int) -> list[list[int]]:    # returns list of missing numbers with where they could go using block-indices
+def poss_lists_block(mat: list[list[int]], block: int) -> list[list[int]]:    # returns list of missing numbers with where they could go using block-indices
     poss_lists = []     # returns list of lists, for every internal list the first element is the number and 2nd el is list of block-indices of where that number could go
     for num in block_missing_nums(mat, block):
         num_poss_list = [num]
@@ -498,17 +497,23 @@ def poss_lists_block(mat: list[int], block: int) -> list[list[int]]:    # return
     return poss_lists   # format [[num1, [index1, index2...]], [num2, [index1...]]]
 
 # iterate through list of blanks instead of all block indices? DELETE
-
-def possibilities_strat_block(mat: list[int], block: int) -> list[int]:
-    poss_lists = poss_lists_block(mat, block)
+def block_blank_ins(mat: list[list[int]], block: int) -> list[int]: # return list of block-indices of blanks in block
+    blanks = []
+    block_l = make_block_l(mat, block)
     for i in range(9):
+        if block_l[i] == 0:
+            blanks.append(i)
+    return blanks
+
+def possibilities_strat_block(mat: list[list[int]], block: int) -> list[list[int]]: # if only one number can go in a given blank in block, fill blank with that number
+    poss_lists = poss_lists_block(mat, block)
+    blanks = block_blank_ins(mat, block)
+    for i in blanks:
         only_num = 10
         for l in poss_lists:
-            print(l[1])
             if i in l[1]:
                 if only_num == 10:
                     only_num = l[0]
-                    print(l[0])
                 else: 
                     only_num = 10
                     break
@@ -517,11 +522,10 @@ def possibilities_strat_block(mat: list[int], block: int) -> list[int]:
             mat[indices[0]][indices[1]] = only_num
     return mat
 
-print_mat(possibilities_strat_block(test1, 1))
-
-# print_mat(test3)
-# print_mat(test)
-
+def poss_strat_blocks(mat: list[list[int]]) -> list[list[int]]:
+    for block in range(9):
+        possibilities_strat_block(mat, block)
+    return mat
 
 
 # *************** USER INPUT ***************
@@ -588,7 +592,19 @@ def main():
 
 # *************** CODING TESTS ***************
 
+# print_mat(test1)
+# test1_solved = poss_strat_blocks(test1)
+# print_mat(test1_solved)
+# print(check_same_nums(test1_solved, test1))
 
+# print_mat(test1)
+# print(block_blank_ins(test1, 1))
+# print(block_blank_ins(test1, 7))
+
+# print_mat(possibilities_strat_block(test1, 1))
+
+# print_mat(test3)
+# print_mat(test)
 
 # print_mat(test1)
 # print(poss_lists_block(test1, 0))
