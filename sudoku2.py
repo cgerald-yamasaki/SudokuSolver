@@ -471,8 +471,57 @@ def loop_strat1(mat: list) -> list: # loop strategy until stops changing
 # simple version only looking at direct intersections with lines containing num
     # rather than taking into account if adjacent block can only have num in a particular line so that line should be eliminated from block looking at
 
-def row_missing_nums(mat: list[list[int]], row: int) -> list[list[int]]: # DELETE?
-    return find_missing_nums(mat[row])
+# def row_missing_nums(mat: list[list[int]], row: int) -> list[list[int]]: # DELETE?
+#     return find_missing_nums(mat[row])
+
+def row_blank_ins(mat: list[list[int]], row: int) -> list[int]: # returns list of row indices of blanks 
+    blanks = []
+    for i in range(9):
+        if mat[row][i] == 0:
+            blanks.append(i)
+    return blanks
+
+def row_num_possibilities(mat: list[list[int]], row: int, num: int) -> list[int]:   # returns list of row indices where num could go
+    elim_mat = copy.deepcopy(mat)
+    elim_mat = elim_in_blanks(elim_mat, num)    # destructive
+    return row_blank_ins(elim_mat, row)
+
+def poss_lists_row(mat: list[list[int]], row: int) -> list[list[int]]:    # returns list of missing numbers with where they could go using row-indices
+    poss_lists = []     # returns list of lists, for every internal list the first element is the number and 2nd el is list of row-indices of where that number could go
+    missing_nums = find_missing_nums(mat[row])
+    for num in missing_nums:
+        num_poss_list = [num]
+        num_poss_list.append(row_num_possibilities(mat, row, num))
+        poss_lists.append(num_poss_list)
+    return poss_lists   # format [[num1, [index1, index2...]], [num2, [index1...]]]
+
+def poss_fill_list(poss_lists: list, blanks: list):
+    fill_list = []  # in the format [num, index] where index can be block, row, or col index
+    for i in blanks:
+        only_num = 10
+        for l in poss_lists:
+            if i in l[1]:
+                if only_num == 10:
+                    only_num = l[0]
+                else:
+                    only_num = 10
+                    break
+        if only_num != 10:
+            fill_list.append([only_num, i])
+    return fill_list
+
+def possibilities_strat_row(mat: list[list[int]], row: int) -> list[list[int]]: # if only one number can go in a given blank in row, fill blank with that number
+    poss_lists = poss_lists_row(mat, row)
+    blanks = row_blank_ins(mat, row)
+    fill_list = poss_fill_list(poss_lists, blanks)
+    for fill_pair in fill_list:
+        mat[row][fill_pair[1]] = fill_pair[0]
+    return mat
+
+def poss_strat_rows(mat: list[list[int]]) -> list[list[int]]:
+    for r in range(9):
+        possibilities_strat_row(mat, r)
+    return mat
 
 def block_missing_nums(mat: list[list[int]], block: int) -> list[int]:    # returns list of numbers missing from block
     block_l = make_block_l(mat, block)
@@ -496,7 +545,6 @@ def poss_lists_block(mat: list[list[int]], block: int) -> list[list[int]]:    # 
         poss_lists.append(num_poss_list)
     return poss_lists   # format [[num1, [index1, index2...]], [num2, [index1...]]]
 
-# iterate through list of blanks instead of all block indices? DELETE
 def block_blank_ins(mat: list[list[int]], block: int) -> list[int]: # return list of block-indices of blanks in block
     blanks = []
     block_l = make_block_l(mat, block)
@@ -505,21 +553,13 @@ def block_blank_ins(mat: list[list[int]], block: int) -> list[int]: # return lis
             blanks.append(i)
     return blanks
 
-def possibilities_strat_block(mat: list[list[int]], block: int) -> list[list[int]]: # if only one number can go in a given blank in block, fill blank with that number
+def possibilities_strat_block(mat: list[list[int]], block: int) -> list[list[int]]:
     poss_lists = poss_lists_block(mat, block)
     blanks = block_blank_ins(mat, block)
-    for i in blanks:
-        only_num = 10
-        for l in poss_lists:
-            if i in l[1]:
-                if only_num == 10:
-                    only_num = l[0]
-                else: 
-                    only_num = 10
-                    break
-        if only_num != 10:
-            indices = ins_from_block_in(block, i)
-            mat[indices[0]][indices[1]] = only_num
+    fill_list = poss_fill_list(poss_lists, blanks)
+    for fill_pair in fill_list:
+        indices = ins_from_block_in(block, fill_pair[1])
+        mat[indices[0]][indices[1]] = fill_pair[0]
     return mat
 
 def poss_strat_blocks(mat: list[list[int]]) -> list[list[int]]:
@@ -593,9 +633,18 @@ def main():
 # *************** CODING TESTS ***************
 
 # print_mat(test1)
-# test1_solved = poss_strat_blocks(test1)
+# test1_solved = copy.deepcopy(test1)
+# poss_strat_rows(test1_solved)
 # print_mat(test1_solved)
-# print(check_same_nums(test1_solved, test1))
+# print_mat(find_changes(test1, test1_solved))
+# print(check_same_nums(test1_solved, test2))
+
+# print_mat(test1)
+# test1_solved = copy.deepcopy(test1)
+# poss_strat_blocks(test1_solved)
+# print_mat(test1_solved)
+# print_mat(find_changes(test1, test1_solved))
+# print(check_same_nums(test1_solved, test2))
 
 # print_mat(test1)
 # print(block_blank_ins(test1, 1))
