@@ -1,5 +1,7 @@
 
 # TO-DO:
+# - make universal looping strat that takes in strat name and loops it 
+#   until it stops changing then returns?
 # - type mat: list to be mat: list[list[int]]
 # - make input handling
 # - decide whether to use 'block' or 'b_in' for block number/index
@@ -118,12 +120,26 @@ test6 = [[0, 0, 0, 0, 0, 0, 1, 0, 0], [0, 0, 2, 0, 9, 0, 0, 0, 0], [4, 7, 9, 1, 
 # 6  8  7 | 9  1  5 | 4  2  3 | 
 # 2  5  4 | 6  8  3 | 9  7  1 | 
 
+# test7:
+# 0  0  6 | 8  0  0 | 3  0  5 | 
+# 0  5  0 | 0  0  9 | 7  0  6 | 
+# 4  0  0 | 2  0  0 | 0  0  0 | 
+# -----------------------------
+# 5  0  0 | 0  0  7 | 9  0  0 | 
+# 1  9  0 | 0  0  0 | 0  0  0 | 
+# 0  4  0 | 0  0  0 | 0  8  0 | 
+# -----------------------------
+# 0  0  0 | 0  0  0 | 0  6  2 | 
+# 0  0  0 | 1  3  0 | 0  0  0 | 
+# 0  0  0 | 0  0  0 | 5  0  0 | 
+
+# expert level
 test7 = [[0, 0, 6, 8, 0, 0, 3, 0, 5], [0, 5, 0, 0, 0, 9, 7, 0, 6], [4, 0, 0, 2, 0, 0, 0, 0, 0], [5, 0, 0, 0, 0, 7, 9, 0, 0], [1, 9, 0, 0, 0, 0, 0, 0, 0], [0, 4, 0, 0, 0, 0, 0, 8, 0], [0, 0, 0, 0, 0, 0, 0, 6, 2], [0, 0, 0, 1, 3, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 5, 0, 0]]
 
 
 # *************** HELPER, SURROUNDING APPARATUS, NON-STRAT STUFF ***************
 
-sudoku = test6
+sudoku = test7
 
 def print_mat(mat: list) -> None:       # prints sudoku matrix with lines between blocks
     for i in range(9):
@@ -464,15 +480,12 @@ def loop_strat1(mat: list) -> list: # loop strategy until stops changing
         new_mat = strat1_numbers(new_mat)
     return new_mat
 
-# LINE/BLOCK STRAT if only one of the remaining numbers can go in a blank within a line/block, put that number there
+# LINE/BLOCK POSSIBILITIES STRAT if only one of the remaining numbers can go in a blank within a line/block, put that number there
 # for a line, for each missing number, make a list of blanks where it could go 
 # if there is a blank space that is only in one of the missing numbers' lists, 
 # put that number in that blank
 # simple version only looking at direct intersections with lines containing num
     # rather than taking into account if adjacent block can only have num in a particular line so that line should be eliminated from block looking at
-
-# def row_missing_nums(mat: list[list[int]], row: int) -> list[list[int]]: # DELETE?
-#     return find_missing_nums(mat[row])
 
 def row_blank_ins(mat: list[list[int]], row: int) -> list[int]: # returns list of row indices of blanks 
     blanks = []
@@ -495,18 +508,18 @@ def poss_lists_row(mat: list[list[int]], row: int) -> list[list[int]]:    # retu
         poss_lists.append(num_poss_list)
     return poss_lists   # format [[num1, [index1, index2...]], [num2, [index1...]]]
 
-def poss_fill_list(poss_lists: list, blanks: list):
+def poss_fill_list(poss_lists: list, blanks: list): # returns list of nums and indices where num must go in row/col/block
     fill_list = []  # in the format [num, index] where index can be block, row, or col index
-    for i in blanks:
+    for i in blanks:    # indices of blanks
         only_num = 10
-        for l in poss_lists:
-            if i in l[1]:
+        for l in poss_lists:    # poss_lists is [[num1, [indices where num1 could go]], [num2, ...], ...]
+            if i in l[1]:   # if index i is in l's index-possibilities list
                 if only_num == 10:
                     only_num = l[0]
                 else:
                     only_num = 10
                     break
-        if only_num != 10:
+        if only_num != 10:  # if only one num can go in i
             fill_list.append([only_num, i])
     return fill_list
 
@@ -518,9 +531,44 @@ def possibilities_strat_row(mat: list[list[int]], row: int) -> list[list[int]]: 
         mat[row][fill_pair[1]] = fill_pair[0]
     return mat
 
-def poss_strat_rows(mat: list[list[int]]) -> list[list[int]]:
+def poss_strat_rows(mat: list[list[int]]) -> list[list[int]]:   # run possibilities_strat_row on each row
     for r in range(9):
         possibilities_strat_row(mat, r)
+    return mat
+
+def col_blank_ins(mat: list[list[int]], col: int) -> list[int]: # returns list of col indices of blanks 
+    blanks = []
+    for i in range(9):
+        if mat[i][col] == 0:
+            blanks.append(i)
+    return blanks
+
+def col_num_possibilities(mat: list[list[int]], col: int, num: int) -> list[int]:   # returns list of col indices where num could go
+    elim_mat = copy.deepcopy(mat)
+    elim_mat = elim_in_blanks(elim_mat, num)    # destructive
+    return col_blank_ins(elim_mat, col)
+
+def poss_lists_col(mat: list[list[int]], col: int) -> list[list[int]]:    # returns list of missing numbers with where they could go using col-indices
+    poss_lists = []     # returns list of lists, for every internal list the first element is the number and 2nd el is list of row-indices of where that number could go
+    col_list = get_col(mat, col)
+    missing_nums = find_missing_nums(col_list)
+    for num in missing_nums:
+        num_poss_list = [num]
+        num_poss_list.append(col_num_possibilities(mat, col, num))
+        poss_lists.append(num_poss_list)
+    return poss_lists   # format [[num1, [index1, index2...]], [num2, [index1...]]]
+
+def possibilities_strat_col(mat: list[list[int]], col: int) -> list[list[int]]: # if only one number can go in a given blank in col, fill blank with that number
+    poss_lists = poss_lists_col(mat, col)
+    blanks = col_blank_ins(mat, col)
+    fill_list = poss_fill_list(poss_lists, blanks)
+    for fill_pair in fill_list:
+        mat[fill_pair[1]][col] = fill_pair[0]
+    return mat
+
+def poss_strat_cols(mat: list[list[int]]) -> list[list[int]]:   # run possibilities_strat_col on each col
+    for c in range(9):
+        possibilities_strat_col(mat, c)
     return mat
 
 def block_missing_nums(mat: list[list[int]], block: int) -> list[int]:    # returns list of numbers missing from block
@@ -553,7 +601,7 @@ def block_blank_ins(mat: list[list[int]], block: int) -> list[int]: # return lis
             blanks.append(i)
     return blanks
 
-def possibilities_strat_block(mat: list[list[int]], block: int) -> list[list[int]]:
+def possibilities_strat_block(mat: list[list[int]], block: int) -> list[list[int]]: # where only one num can go in a blank in a block, fill that blank w that num
     poss_lists = poss_lists_block(mat, block)
     blanks = block_blank_ins(mat, block)
     fill_list = poss_fill_list(poss_lists, blanks)
@@ -562,10 +610,25 @@ def possibilities_strat_block(mat: list[list[int]], block: int) -> list[list[int
         mat[indices[0]][indices[1]] = fill_pair[0]
     return mat
 
-def poss_strat_blocks(mat: list[list[int]]) -> list[list[int]]:
+def poss_strat_blocks(mat: list[list[int]]) -> list[list[int]]: # run possibilities_strat_block on each block
     for block in range(9):
         possibilities_strat_block(mat, block)
     return mat
+
+def poss_strat_all(mat: list[list[int]]) -> list[list[int]]: # performs poss_strat_rows, _cols, and _blocks
+    mat = poss_strat_rows(mat)
+    mat = poss_strat_cols(mat)
+    mat = poss_strat_blocks(mat)
+    return mat
+
+def possibilities_strat(mat: list[list[int]]) -> list[list[int]]: # loop strategy until stops changing
+    old_mat = copy.deepcopy(mat)
+    new_mat = copy.deepcopy(mat)
+    new_mat = poss_strat_all(new_mat)
+    while new_mat != old_mat:
+        old_mat = copy.deepcopy(new_mat)
+        new_mat = poss_strat_all(new_mat)
+    return new_mat
 
 
 # *************** USER INPUT ***************
@@ -613,6 +676,7 @@ def run_strats(mat):
     mat = fill_oz_lines(mat)
     mat = fill_oz_blocks(mat)
     mat = loop_strat1(mat)
+    mat = possibilities_strat(mat)
     return mat
 
 def main():
@@ -631,6 +695,35 @@ def main():
 
 
 # *************** CODING TESTS ***************
+
+# test7_solved = copy.deepcopy(test7)
+# test7_solved = possibilities_strat(test7_solved)
+# print_info(test7, test7_solved)
+
+# test6_solved = copy.deepcopy(test6)
+# test6_solved = possibilities_strat(test6_solved)
+# print_info(test6, test6_solved)
+
+# test5_solved = copy.deepcopy(test5)
+# test5_solved = possibilities_strat(test5_solved)
+# print_info(test5, test5_solved)
+
+# print_mat(poss_strat_all(test1))
+
+# print_mat(test1)
+# test1_solved = copy.deepcopy(test1)
+# test1_solved = possibilities_strat(test1_solved)
+# print_info(test1, test1_solved)
+# print_mat(test1_solved)
+# print_mat(find_changes(test1, test1_solved))
+# print(check_same_nums(test1_solved, test2))
+
+# print_mat(test1)
+# test1_solved = copy.deepcopy(test1)
+# poss_strat_cols(test1_solved)
+# print_mat(test1_solved)
+# print_mat(find_changes(test1, test1_solved))
+# print(check_same_nums(test1_solved, test2))
 
 # print_mat(test1)
 # test1_solved = copy.deepcopy(test1)
