@@ -13,6 +13,8 @@
 #   blanks x or y and numC can go in blank z (or some combo of 
 #   other blanks), numC must go in blank z.
 # - replace 'block_in' with 'block-num'?
+# - keep data in format [[0, 3, 8], [1], ...] such that lists 
+#   possibilities for each num
 
 
 
@@ -508,6 +510,13 @@ def poss_lists_row(mat: list[list[int]], row: int) -> list[list[int]]:    # retu
         poss_lists.append(num_poss_list)
     return poss_lists   # format [[num1, [index1, index2...]], [num2, [index1...]]]
 
+def find_one_poss(poss_lists: list[list[int, list[int]]]) -> list[list[int]]: # finds all instances where num only has one spot it can go in, returns list of pairs [num, index num must go]
+    fill_list = []
+    for pl in poss_lists:
+        if len(pl[1]) == 1:
+            fill_list.append([pl[0], pl[1][0]])
+    return fill_list
+
 def poss_fill_list(poss_lists: list, blanks: list): # returns list of nums and indices where num must go in row/col/block
     fill_list = []  # in the format [num, index] where index can be block, row, or col index
     for i in blanks:    # indices of blanks
@@ -523,10 +532,20 @@ def poss_fill_list(poss_lists: list, blanks: list): # returns list of nums and i
             fill_list.append([only_num, i])
     return fill_list
 
+def merge_fill_lists(poss_lists: list[list[int, list[int]]], blanks: list[int]) -> list[list[int]]:
+    fill_list1 = find_one_poss(poss_lists)
+    fill_list2 = poss_fill_list(poss_lists, blanks)
+    ret_fill_list = fill_list1
+    for fl in fill_list2:
+        if fl not in ret_fill_list:
+            ret_fill_list.append(fl)
+    return ret_fill_list
+
 def possibilities_strat_row(mat: list[list[int]], row: int) -> list[list[int]]: # if only one number can go in a given blank in row, fill blank with that number
     poss_lists = poss_lists_row(mat, row)
     blanks = row_blank_ins(mat, row)
-    fill_list = poss_fill_list(poss_lists, blanks)
+    # fill_list = poss_fill_list(poss_lists, blanks)
+    fill_list = merge_fill_lists(poss_lists, blanks)
     for fill_pair in fill_list:
         mat[row][fill_pair[1]] = fill_pair[0]
     return mat
@@ -561,7 +580,8 @@ def poss_lists_col(mat: list[list[int]], col: int) -> list[list[int]]:    # retu
 def possibilities_strat_col(mat: list[list[int]], col: int) -> list[list[int]]: # if only one number can go in a given blank in col, fill blank with that number
     poss_lists = poss_lists_col(mat, col)
     blanks = col_blank_ins(mat, col)
-    fill_list = poss_fill_list(poss_lists, blanks)
+    # fill_list = poss_fill_list(poss_lists, blanks)
+    fill_list = merge_fill_lists(poss_lists, blanks)
     for fill_pair in fill_list:
         mat[fill_pair[1]][col] = fill_pair[0]
     return mat
@@ -593,6 +613,52 @@ def poss_lists_block(mat: list[list[int]], block: int) -> list[list[int]]:    # 
         poss_lists.append(num_poss_list)
     return poss_lists   # format [[num1, [index1, index2...]], [num2, [index1...]]]
 
+# def elim_repeat_ps(poss_lists: list[list], ps_to_elim: list[int]) -> list[list]:   # elim ps_to_elim indices from poss_lists for all nums whose possibilities aren't exactly ps_to_elim
+#     elimed_pls = []
+#     for l in poss_lists:
+#         if l[1] == ps_to_elim:  # if a num's possibilities are exactly ps_to_elim, don't elim
+#             elimed_pls.append(l)
+#             continue
+#         pl = copy.deepcopy(l[1])
+#         for p in ps_to_elim:    # elim ps_to_elim from num's possibility list
+#             if p in l[1]:
+#                 pl.remove(p)
+#         elimed_pls.append([l[0], pl])
+#     return elimed_pls
+
+def find_pls_pairs_matches(poss_lists: list[list]) -> list[list[int]]: # returns list of nums whose possibilities lists are identical and of length 2 and list of possibilities to be eliminated from other nums' lists
+    pls_copy = copy.deepcopy(poss_lists)
+    match_nums = []
+    match_posss = []
+    for pl in poss_lists:
+        pls_copy.remove(pl)
+        for plc in pls_copy:
+            if pl[1] in plc and len(pl[1]) == 2:
+                match_nums.append(pl[0])
+                match_nums.append(plc[0])
+                match_posss.append(pl[1][0])
+                match_posss.append(pl[1][1])
+    return [match_nums, match_posss]
+
+def elim_pair_match_nums(poss_lists: list[list], matches: list[list[int], list[int]]) -> list[int]:  # 
+    for pl in poss_lists:
+        if pl[0] in matches[0]:
+            continue
+        for poss in matches[1]:
+            try:
+                pl[1].remove(poss)
+            except:
+                continue
+    return poss_lists
+
+# def elim_poss_pair_doubles(poss_lists: list[list]) -> list[list]:   # given a list of nums and their possibilities, if two numbers have same two possibilities, elim those possibilities from other nums' lists
+#     pls_copy = copy.deepcopy(poss_lists)
+#     prev_pl = [[]]
+#     for pl in poss_lists:
+#         if pl[1] == prev_pl[1]: #FIX! THEY DON'T HAVE TO BE BACK TO BACK!!!
+#             if len(pl[1]) == 2:
+#                 elim_repeat_ps(pls_copy, pl[1])
+
 def block_blank_ins(mat: list[list[int]], block: int) -> list[int]: # return list of block-indices of blanks in block
     blanks = []
     block_l = make_block_l(mat, block)
@@ -602,9 +668,15 @@ def block_blank_ins(mat: list[list[int]], block: int) -> list[int]: # return lis
     return blanks
 
 def possibilities_strat_block(mat: list[list[int]], block: int) -> list[list[int]]: # where only one num can go in a blank in a block, fill that blank w that num
-    poss_lists = poss_lists_block(mat, block)
+    # poss_lists = poss_lists_block(mat, block)
+    pls = poss_lists_block(mat, block)
+    poss_lists = elim_pair_match_nums(pls, find_pls_pairs_matches(pls))
+    # if pls != poss_lists: 
+    #     print(pls)
+    #     print(poss_lists)
     blanks = block_blank_ins(mat, block)
-    fill_list = poss_fill_list(poss_lists, blanks)
+    # fill_list = poss_fill_list(poss_lists, blanks)
+    fill_list = merge_fill_lists(poss_lists, blanks)
     for fill_pair in fill_list:
         indices = ins_from_block_in(block, fill_pair[1])
         mat[indices[0]][indices[1]] = fill_pair[0]
@@ -630,6 +702,10 @@ def possibilities_strat(mat: list[list[int]]) -> list[list[int]]: # loop strateg
         new_mat = poss_strat_all(new_mat)
     return new_mat
 
+# ELIM POSSIBILITIES STRAT/addition 
+# if two numbers' possibilities lists (for a block or line) each only have
+# two options and they're the same spaces, eliminate those possibilites from
+# other numbers' possibility lists
 
 # *************** USER INPUT ***************
 
@@ -695,6 +771,29 @@ def main():
 
 
 # *************** CODING TESTS ***************
+
+test6_solved = copy.deepcopy(test6)
+test6_solved = possibilities_strat(test6_solved)
+print_info(test6, test6_solved)
+
+test7_solved = copy.deepcopy(test7)
+test7_solved = possibilities_strat(test7_solved)
+print_info(test7, test7_solved)
+
+# poss_lists = [[1, [1, 2]], [3, [3, 8]], [4, [1, 2]], [5, [7, 8]], [6, [7, 8]], [7, [1, 4, 7]]]
+# print(poss_lists)
+# matches = find_pls_pairs_matches(poss_lists)
+# print(matches)
+# print(elim_pair_match_nums(poss_lists, matches))
+
+# poss_lists = [[1, [1, 2, 4, 7, 8]], [3, [3, 8]], [4, [1, 2, 3, 4]], [5, [7, 8]], [6, [7, 8]], [7, [1, 7]]]
+# poss_lists = [[1, [1, 2]], [3, [3, 8]], [4, [1, 2]], [5, [7, 8]], [6, [7, 8]], [7, [1, 7]]]
+# print(find_pls_pairs_matches(poss_lists))
+
+
+# poss_lists = poss_lists_block(test7, 1)
+# print(poss_lists)
+# print(elim_repeat_ps(poss_lists, [7, 8]))
 
 # test7_solved = copy.deepcopy(test7)
 # test7_solved = possibilities_strat(test7_solved)
