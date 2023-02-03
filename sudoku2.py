@@ -138,6 +138,29 @@ test6 = [[0, 0, 0, 0, 0, 0, 1, 0, 0], [0, 0, 2, 0, 9, 0, 0, 0, 0], [4, 7, 9, 1, 
 # expert level
 test7 = [[0, 0, 6, 8, 0, 0, 3, 0, 5], [0, 5, 0, 0, 0, 9, 7, 0, 6], [4, 0, 0, 2, 0, 0, 0, 0, 0], [5, 0, 0, 0, 0, 7, 9, 0, 0], [1, 9, 0, 0, 0, 0, 0, 0, 0], [0, 4, 0, 0, 0, 0, 0, 8, 0], [0, 0, 0, 0, 0, 0, 0, 6, 2], [0, 0, 0, 1, 3, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 5, 0, 0]]
 
+# hard level
+test8 = [[0, 0, 8, 0, 0, 7, 0, 0, 0], [0, 4, 0, 9, 0, 0, 0, 6, 0], [1, 9, 0, 0, 8, 3, 5, 0, 0], [0, 0, 0, 0, 0, 8, 0, 1, 0], [6, 0, 0, 0, 0, 0, 0, 4, 0], [0, 0, 0, 7, 0, 0, 3, 0, 0], [8, 0, 1, 0, 0, 9, 2, 7, 0], [0, 0, 3, 0, 0, 0, 0, 0, 0], [0, 0, 6, 0, 0, 0, 4, 0, 5]]
+
+# test8, after one iteration of loopstrat
+test8b = [[0, 6, 8, 0, 0, 7, 0, 0, 0], [0, 4, 0, 9, 0, 0, 0, 6, 0], [1, 9, 0, 6, 8, 3, 5, 0, 0], [0, 0, 4, 0, 0, 8, 6, 1, 0], [6, 0, 0, 0, 0, 0, 0, 4, 0], [0, 0, 0, 7, 6, 4, 3, 5, 0], [8, 0, 1, 0, 0, 9, 2, 7, 6], [4, 0, 3, 0, 0, 6, 0, 0, 0], [9, 0, 6, 0, 0, 0, 4, 0, 5]]
+
+
+# test9:
+# 5  6  8 | 4  2  7 | 1  9  3 | 
+# 3  4  2 | 9  1  5 | 8  6  7 | 
+# 1  9  7 | 6  8  3 | 5  2  4 | 
+# -----------------------------
+# 7  3  4 | 5  9  8 | 6  1  2 | 
+# 6  8  5 | 1  3  2 | 7  4  9 | 
+# 2  1  9 | 7  6  4 | 3  5  8 | 
+# -----------------------------
+# 8  5  1 | 3  4  9 | 2  7  6 | 
+# 4  7  3 | 2  5  6 | 9  8  1 | 
+# 9  2  6 | 8  7  1 | 4  3  5 | 
+# -----------------------------
+
+# test8 solved:
+test9 = [[5, 6, 8, 4, 2, 7, 1, 9, 3], [3, 4, 2, 9, 1, 5, 8, 6, 7], [1,  9, 7, 6, 8, 3, 5, 2, 4], [7, 3, 4, 5, 9, 8, 6, 1, 2], [6, 8, 5, 1, 3, 2, 7, 4, 9], [2, 1, 9, 7, 6, 4, 3, 5, 8], [8, 5, 1, 3, 4, 9, 2, 7, 6], [4, 7, 3, 2, 5, 6, 9, 8, 1], [9, 2, 6, 8, 7, 1, 4, 3, 5]]
 
 # *************** HELPER, SURROUNDING APPARATUS, NON-STRAT STUFF ***************
 
@@ -264,9 +287,10 @@ def find_missing_nums(l: list) -> list: # given a list (row, col, or block list)
     return missing_nums
 
 def fill_oz_row(mat: list, num=10) -> list:     # returns mat with all rows with only one zero filled
-    filled_mat = mat
+    filled_mat = copy.deepcopy(mat)
     for r_in in range(9): 
         blank_in = find_one_zero(mat[r_in])
+        # if num == 9 and r_in == 4: print("r_in=4, blank_in=", blank_in)
         if blank_in != 10:
             if num == 10:
                 num = find_missing_nums(mat[r_in])[0]
@@ -274,10 +298,13 @@ def fill_oz_row(mat: list, num=10) -> list:     # returns mat with all rows with
     return filled_mat
 
 def fill_oz_col(mat: list, num=10) -> list:     # returns mat with all cols with only one zero/blank filled
-    filled_mat = mat
+    filled_mat = copy.deepcopy(mat)
     for c_in in range(9):
-        col = get_col(mat, c_in)    # column as a list
+        col = get_col(filled_mat, c_in)    # column as a list
         blank_in = find_one_zero(col)
+        if num == 9 and c_in == 2: 
+            print("c_in=2, blank_in=", blank_in)
+            print(col)
         if blank_in != 10:
             if num == 10:
                 num = find_missing_nums(mat[c_in])[0]
@@ -440,10 +467,23 @@ def fill_one_zeros(mat: list, num=10) -> list:  # if there is only one 0 left in
 # STEP 4:
 
 def elim_and_fill(mat: list, num: int) -> list: # do steps 1-3
-    mat = elim_in_blanks(mat, num)
-    mat = loop_elb(mat)
-    mat = fill_one_zeros(mat, num)
-    return mat
+    if num == 9: return elim_and_fill_fix(mat, num)
+    ret_mat = elim_in_blanks(mat, num)
+    ret_mat = loop_elb(ret_mat)
+    ret_mat = fill_one_zeros(ret_mat, num)
+    return ret_mat
+
+def elim_and_fill_fix(mat: list, num: int) -> list: # do steps 1-3
+    ret_mat = elim_in_blanks(mat, num)
+    print("elim_in_blanks:")
+    print_mat(ret_mat)
+    ret_mat = loop_elb(ret_mat)
+    print("loop_elb:")
+    print_mat(ret_mat)
+    ret_mat = fill_one_zeros(ret_mat, num)
+    print("fill_one_zeros")
+    print_mat(ret_mat)
+    return ret_mat
 
 def loop_elim_fill(mat: list, num: int) -> list:    # loop steps 1-3 until mat stops changing
     old_mat = copy.deepcopy(mat)
@@ -469,15 +509,19 @@ def strat1_numbers(mat: list) -> list:  # steps 1-5
     for num in range(1, 10):
         mat = loop_elim_fill(mat, num)
         mat = replace_10s(mat)
+        # print_mat(mat)
     return mat
 
 # STEP 7
+
+# third it loop (4, 2) is 9 as well as (5, 2), test8
 
 def loop_strat1(mat: list) -> list: # loop strategy until stops changing
     old_mat = copy.deepcopy(mat)
     new_mat = copy.deepcopy(mat)
     new_mat = strat1_numbers(new_mat)
     while new_mat != old_mat:
+        print_mat(old_mat)
         old_mat = copy.deepcopy(new_mat)
         new_mat = strat1_numbers(new_mat)
     return new_mat
@@ -728,7 +772,11 @@ def run_strats(mat):
     mat = fill_oz_lines(mat)
     mat = fill_oz_blocks(mat)
     mat = loop_strat1(mat)
-    mat = possibilities_strat(mat)
+    print("loop:")
+    print_mat(mat)
+    # mat = possibilities_strat(mat)
+    # print("poss:")
+    # print_mat(mat)
     return mat
 
 def main():
@@ -748,9 +796,31 @@ def main():
 
 # *************** CODING TESTS ***************
 
-test7_solved = copy.deepcopy(test7)
-test7_solved = run_strats(test7_solved)
-print_info(test7, test7_solved)
+loop8 = loop_strat1(test8b)
+
+# loop8 = loop_strat1(test8)
+# print_mat(loop8)
+# print(check_same_nums(loop8, test9))
+
+# print_mat(test9)
+
+# print(check_complete(test9))
+# print(check_same_nums(test8, test9))
+
+# print_mat(loop_strat1(test8))
+# print(check_complete(test9))
+# print(check_same_nums(test8, test9))
+# print(check_complete(test10))
+# print(check_same_nums(test8, test10))
+
+# test8_solved = copy.deepcopy(test8)
+# test8_solved = run_strats(test8_solved)
+# print_info(test8, test8_solved)
+# does something weird in loop
+
+# test7_solved = copy.deepcopy(test7)
+# test7_solved = run_strats(test7_solved)
+# print_info(test7, test7_solved)
 
 # test6_solved = copy.deepcopy(test6)
 # test6_solved = run_strats(test6_solved)
