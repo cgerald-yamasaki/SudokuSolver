@@ -315,10 +315,12 @@ def fill_oz_lines(mat: list, num=10) -> list:   # does not change input mat, ret
     old_mat = copy.deepcopy(mat)
     new_mat = copy.deepcopy(mat)
     new_mat = fill_oz_row(new_mat, num)
+    new_mat = elim_in_blanks(new_mat, num)  # previously didn't have this here and it was a weird bug
     new_mat = fill_oz_col(new_mat, num)
     while new_mat != old_mat:
         old_mat = copy.deepcopy(new_mat)
         new_mat = fill_oz_row(new_mat, num)
+        new_mat = elim_in_blanks(new_mat, num)  # previously didn't have this here and it was a weird bug
         new_mat = fill_oz_col(new_mat, num)
     return new_mat
 
@@ -460,14 +462,24 @@ def loop_elb(mat: list) -> list:    # loops elim_line_blanks until no more blank
 # STEP 3:
 
 def fill_one_zeros(mat: list, num=10) -> list:  # if there is only one 0 left in a line or block, replace with num
-    mat = fill_oz_lines(mat, num)
-    mat = fill_oz_blocks(mat, num)
-    return mat
+    ret_mat = fill_oz_lines(mat, num)
+    # if num == 9:
+    #     print("fill_oz_lines:")
+    #     print_mat(ret_mat)
+    ret_mat = elim_in_blanks(ret_mat, num)
+    # if num == 9:
+    #     print("eliminblanks:")
+    #     print_mat(ret_mat)
+    ret_mat = fill_oz_blocks(ret_mat, num)
+    # if num == 9:
+    #     print("fill_oz_blocks:")
+    #     print_mat(ret_mat)
+    return ret_mat
 
 # STEP 4:
 
 def elim_and_fill(mat: list, num: int) -> list: # do steps 1-3
-    if num == 9: return elim_and_fill_fix(mat, num)
+    # if num == 9: return elim_and_fill_fix(mat, num)
     ret_mat = elim_in_blanks(mat, num)
     ret_mat = loop_elb(ret_mat)
     ret_mat = fill_one_zeros(ret_mat, num)
@@ -796,7 +808,11 @@ def main():
 
 # *************** CODING TESTS ***************
 
-loop8 = loop_strat1(test8b)
+test8_solved = copy.deepcopy(test8)
+test8_solved = run_strats(test8_solved)
+print_info(test8, test8_solved)
+
+# loop8 = loop_strat1(test8b)
 
 # loop8 = loop_strat1(test8)
 # print_mat(loop8)
